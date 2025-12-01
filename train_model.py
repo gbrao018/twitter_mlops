@@ -43,6 +43,7 @@ except LookupError:
 
 # --- 2. Configuration ---
 # Assuming the data file is placed in the 'data' directory as per your setup
+#DATA_PATH = 'data/twitter_training.csv'
 DATA_PATH = 'data/twitter_training.csv'
 # Column names based on the snippet provided (no header in the raw CSV)
 COLUMN_NAMES = ['ID', 'Entity', 'Sentiment', 'Tweet']
@@ -79,7 +80,7 @@ def preprocess_text(text):
     return " ".join(tokens)
 
 # --- 4. Main Training Function ---
-def train_and_log_model(data_path):
+def train_and_log_model(data_path=DATA_PATH):
     """
     Loads data, preprocesses, trains a model, and logs everything to MLflow.
     """
