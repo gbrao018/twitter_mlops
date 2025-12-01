@@ -1,5 +1,7 @@
 # --- Environment and Dependencies ---
 MlOps.txt
+# Local environment file
+.env
 .venv/
 venv/
 env/

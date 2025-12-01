@@ -11,6 +11,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, f1_score
 import mlflow
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # --- 1. NLTK Setup (CORRECTED) ---
 # We catch LookupError, which is what nltk.data.find() raises when resources are missing.

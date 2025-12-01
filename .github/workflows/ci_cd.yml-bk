@@ -1,0 +1,48 @@
+# .github/workflows/ci_cd.yml
+
+name: MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main # Trigger pipeline on push to the main branch
+
+jobs:
+  build-and-train:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Install the application and all dependencies
+      - name: Install Project and Dependencies
+        run: pip install -e .
+
+      # --- CI Stage: Run Tests/Linting (Optional, but good practice) ---
+      # Add steps for linting or unit tests here
+
+      # --- CD Stage: Run Model Training ---
+      - name: Set MLflow Tracking URI (Local for example)
+        # In a real setup, this would point to a remote server
+        run: |
+          export MLFLOW_TRACKING_URI="./mlruns"
+          mkdir -p mlruns data
+          # Copy data (Assuming data is handled by DVC or cloud storage normally. 
+          # For this project, we assume data is available or can be fetched.)
+
+      - name: Run Model Training and Log to MLflow
+        # Executes the entry point defined in setup.py
+        run: train_sentiment 
+        # Note: You would need to ensure the data is in the 'data' directory for this step to succeed.
+
+      # --- CD Stage: Model Promotion and Deployment ---
+      # In a real-world scenario, you would add steps here to:
+      # 1. Check the newly logged model's metrics (using MLflow API).
+      # 2. Promote the model to the "Staging" or "Production" stage in the MLflow Model Registry.
+      # 3. Build the Docker image (Step 2) and push it to a container registry (e.g., Docker Hub).
+      # 4. Deploy the new Docker image to a serving platform (e.g., Kubernetes).

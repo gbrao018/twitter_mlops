@@ -1,0 +1,79 @@
+name: MLOps CI/CD Pipeline (Train, Promote, Package)
+
+on:
+  push:
+    branches:
+      - main # Trigger the pipeline on pushes to the main branch
+
+# Define environment variables for the entire workflow
+env:
+  MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+  MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_USERNAME }}
+  MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }} # For S3 artifact store
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  
+jobs:
+  # The main job that handles training, promotion, and deployment preparation
+  mlops_pipeline:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      # --- CI STAGE: Setup and Installation ---
+      - name: Install Project and Dependencies
+        # The -e (editable) install uses setup.py to install the project and create the entry points
+        run: pip install -e .
+
+      - name: Prepare Data Directory
+        # CRITICAL: Since data (twitter_training.csv) is required, this step must fetch it.
+        # This is a placeholder for a real-world DVC pull or S3/GCS fetch command.
+        # For a small example, we assume the CSV is committed and just need the folder structure.
+        run: |
+          mkdir -p data
+          # Example: If the CSV was stored on S3: aws s3 cp s3://my-bucket/twitter_training.csv data/
+          # For testing, ensure your 'twitter_training.csv' is in the root before this step runs
+          # or assume it's committed to git and available here:
+          # cp twitter_training.csv data/ 
+          echo "Data fetch/preparation complete." 
+
+      # --- CD STAGE 1: Train Model ---
+      - name: Run Model Training and Log to MLflow
+        # Executes the 'train_sentiment' command-line entry point defined in setup.py
+        # Logs a new run and a new model version to the remote MLflow Tracking Server
+        run: train_sentiment 
+        
+      # --- CD STAGE 2: Promote Model (Validation/Promotion Gate) ---
+      - name: Run Model Promotion Logic
+        # Executes the promote_model.py script using MLflow API to check metrics
+        # and transition the new model version to the 'Staging' stage if metrics are superior.
+        run: python promote_model.py
+
+      # --- CD STAGE 3: Build and Push Docker Image (Deployment Artifact) ---
+      - name: Login to Docker Hub
+        # Assumes you are using Docker Hub or another Container Registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/ebay_mlops_sentiment:latest
+          
+      # --- CD STAGE 4: Deployment Trigger (Conceptual) ---
+      - name: Deployment Trigger
+        # This step notifies your cloud deployment service (e.g., Kubernetes) 
+        # that a new image is ready to be pulled and deployed.
+        run: echo "Deployment trigger executed. Image pushed to registry."
+        # Example command: kubectl set image deployment/sentiment-service sentiment-api=...
