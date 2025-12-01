@@ -12,6 +12,7 @@ from sklearn.metrics import accuracy_score, f1_score
 import mlflow
 import os
 from dotenv import load_dotenv
+from sklearn.metrics import f1_score, accuracy_score
 
 # Load environment variables from .env file
 load_dotenv()
@@ -144,6 +145,7 @@ def train_and_log_model(data_path=DATA_PATH):
         print("Model training complete.")
 
         # --- Model Evaluation ---
+        print("Evaluating model...")
         y_pred = text_clf.predict(X_test)
 
         accuracy = accuracy_score(y_test, y_pred)

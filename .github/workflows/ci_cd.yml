@@ -38,6 +38,10 @@ jobs:
         # For a small example, we assume the CSV is committed and just need the folder structure.
         run: |
           mkdir -p data
+          # 💥 CRITICAL FIX: Copy the CSV file from the root to the expected location.
+          cp twitter_training.csv data/twitter_training.csv 
+          echo "Data preparation complete. File copied to data/ directory."
+          
           # Example: If the CSV was stored on S3: aws s3 cp s3://my-bucket/twitter_training.csv data/
           # For testing, ensure your 'twitter_training.csv' is in the root before this step runs
           # or assume it's committed to git and available here:
