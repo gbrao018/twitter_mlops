@@ -1,0 +1,39 @@
+# --- Environment and Dependencies ---
+MlOps.txt
+.venv/
+venv/
+env/
+.idea/             # PyCharm / IntelliJ
+.vscode/           # VS Code
+*.sqlite           # Database files (e.g., if you switch MLflow to DB backend)
+
+# --- Python Artifacts ---
+__pycache__/
+*.pyc
+*.o
+*.so
+*~
+
+# --- Data and Artifacts (CRUCIAL FOR ML) ---
+
+# 1. Raw Data (Avoid committing large datasets)
+data/
+
+# 2. Model Artifacts and Experiment Tracking
+# The directory where MLflow stores runs, metrics, and models locally
+mlruns/
+*.pkl
+*.bin
+*.h5
+*.onnx
+
+# 3. NLTK Data (Downloaded resources)
+nltk_data/
+
+# 4. Jupyter Notebook Checkpoints
+.ipynb_checkpoints
+
+# --- Packaging and Distribution ---
+dist/
+build/
+*.egg-info/
