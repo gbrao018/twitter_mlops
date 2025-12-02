@@ -51,6 +51,11 @@ COLUMN_NAMES = ['ID', 'Entity', 'Sentiment', 'Tweet']
 RANDOM_STATE = 42
 MAX_ITER = 1000
 
+# 💥 NEW CRITICAL FIX: Manually add the CI/CD download path to NLTK search paths
+NLTK_DATA_PATH = '/home/runner/nltk_data'
+if NLTK_DATA_PATH not in nltk.data.path:
+    nltk.data.path.append(NLTK_DATA_PATH)
+    
 # --- 3. Text Preprocessing Function ---
 def preprocess_text(text):
     """
