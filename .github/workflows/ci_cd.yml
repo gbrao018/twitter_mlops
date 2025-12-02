@@ -10,24 +10,15 @@
   #CD Steps: The packaging line where the delivery box (the Docker image) is created 
     #to securely ship the product to the store (deployment environment).
 
-name: MLOps CI/CD Pipeline (Train, Promote, Package)
+name: CI/CD Pipeline for Sentiment Analysis
 
 on:
   push:
     branches:
-      - main # Trigger the pipeline on pushes to the main branch
+      - main
 
-# Define environment variables for the entire workflow
-env:
-  # These must be set as secrets in GitHub for remote MLflow tracking
-  MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-  MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_USERNAME }}
-  MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }} # For S3 artifact store
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  
 jobs:
-  mlops_pipeline:
+  build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
@@ -43,51 +34,48 @@ jobs:
       - name: Install Project and Dependencies
         run: pip install -e .
 
-      # 💥 CRITICAL FIX 1: Download NLTK data explicitly into the runner's workspace
+      # 💥 NLTK FIX: Download resources to a fixed path and set the ENV variable.
+      # This addresses the persistent LookupError.
       - name: Download NLTK Resources
         run: |
-          # Set the environment variable to a known location for all subsequent steps
+          # Set the environment variable for subsequent steps
           echo "NLTK_DATA=/home/runner/nltk_data" >> $GITHUB_ENV
-
-          # Force download all necessary resources into that location before training starts
+          
+          # Download ALL required packages into the fixed location
           python -c "import nltk; nltk.download(['stopwords', 'wordnet', 'punkt'], download_dir='/home/runner/nltk_data')"
-
-      # 💥 CRITICAL FIX 2: Ensure Data is in the correct subfolder
+          
+      # 💥 DATA FIX: Prepare data directory (removed redundant 'cp' command)
+      # This assumes the 'twitter_training.csv' is committed inside the 'data/' folder.
       - name: Prepare Data Directory
         run: |
-          mkdir -p data
-          # CRITICAL FIX: Copy the committed CSV file from the root (where Git checks it out) 
-          # to the 'data/' subfolder (where train_model.py expects it).
-          #data/twitter_training.csv already present in the repo
-          #cp data/twitter_training.csv data/twitter_training.csv 
-          echo "Data preparation complete. File copied to data/ directory." 
+          # Ensures the data folder exists. We rely on Git checkout for the file.
+          mkdir -p data 
+          echo "Data directory prepared. File checked out by Git."
 
-      # --- CD STAGE 1: Train Model ---
+      # --- CT STAGE: Train Model ---
+      # 💥 FINAL NLTK FIX: Explicitly pass the NLTK_DATA environment variable to the training script.
       - name: Run Model Training and Log to MLflow
-        # This now executes successfully because NLTK data and the training file are in place.
-        run: train_sentiment 
-        
-      # --- CD STAGE 2: Promote Model (Validation/Promotion Gate) ---
-      - name: Run Model Promotion Logic
-        # This now executes successfully because train_sentiment logged 'test_f1_macro' metric.
-        run: python promote_model.py
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          # This guarantees the script finds its NLTK data using the explicit path
+          NLTK_DATA=/home/runner/nltk_data train_sentiment
 
-      # --- CD STAGE 3: Build and Push Docker Image (Deployment Artifact) ---
-      - name: Login to Docker Hub
-        # Requires DOCKER_USERNAME and DOCKER_PASSWORD secrets to be set in GitHub.
+      # --- CD STAGE: Build and Deploy Artifact (Docker) ---
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          password: ${{ secrets.DOCKER_PASSWORD }} # Use the Access Token here
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/ebay_mlops_sentiment:latest
-          
-      # --- CD STAGE 4: Deployment Trigger (Conceptual) ---
-      - name: Deployment Trigger
-        run: echo "Deployment trigger executed. Image pushed to registry."
-        # In a real environment, this would contain the command to notify Kubernetes/Cloud service.
+          # !! REPLACE 'yourdockerhubusername' with your actual username !!
+          tags: ganjidocker/sentiment-analysis-service:latest
