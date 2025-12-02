@@ -1,5 +1,3 @@
-# .github/workflows/ci_cd.yml
-
 name: CI/CT/CD Pipeline for Sentiment Analysis
 
 on:
@@ -24,44 +22,22 @@ jobs:
       - name: Install Project and Dependencies
         run: pip install -e .
 
-      # 💥 NLTK FIX: Download resources using a robust method and set the ENV variable.
-      - name: Download NLTK Resources
+      # 💥 NLTK FIX: Set the path globally for all subsequent steps
+      - name: Set NLTK Data Path (Global ENV)
         run: |
           NLTK_DATA_PATH="/home/runner/nltk_data"
+          # Export to GITHUB_ENV so all subsequent steps can access $NLTK_DATA
           echo "NLTK_DATA=$NLTK_DATA_PATH" >> $GITHUB_ENV
 
-          # This entire section is one string executed by the shell.
-          python -c "
-            import nltk
-            import ssl
-            try:
-                _create_unverified_https_context = ssl._create_unverified_context
-            except AttributeError:
-                pass
-            else:
-              ssl._create_default_https_context = _create_unverified_https_context
-    
-            # Force the downloader to look in the target path
-            nltk.download(['stopwords', 'wordnet', 'punkt'], download_dir='$NLTK_DATA_PATH')"         
-      # 💥 DATA FIX: Prepare data directory 
-      - name: Prepare Data Directory
-        run: |
-          # Ensures the data folder exists. The file is checked out by Git into this folder.
-          mkdir -p data 
-          echo "Data directory prepared."
+      - name: Download NLTK Data
+        # Executes the new Python script to download data into the path set above
+        run: python download_nltk.py
 
       # --- CT STAGE: Train Model ---
-      # 💥 FINAL NLTK FIX: Explicitly pass the NLTK_DATA environment variable to the training script.
-      - name: Run Model Training and Log to MLflow
-        env:
-          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          # This guarantees the script finds its NLTK data using the explicit path
-          NLTK_DATA=/home/runner/nltk_data train_sentiment
+      - name: Train Sentiment Model
+        # The 'train_sentiment' command now automatically has access to the NLTK_DATA
+        # environment variable thanks to the global export in the previous step.
+        run: train_sentiment
 
       # --- CD STAGE: Build and Deploy Artifact (Docker) ---
       - name: Log in to Docker Hub
