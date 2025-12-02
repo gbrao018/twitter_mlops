@@ -17,59 +17,31 @@ from sklearn.metrics import f1_score, accuracy_score
 # Load environment variables from .env file
 load_dotenv()
 
-# --- 1. NLTK Setup (CORRECTED) ---
-# We catch LookupError, which is what nltk.data.find() raises when resources are missing.
-#import nltk
-
-#try:
-#    nltk.data.find('corpora/stopwords')
-#except LookupError:
-#    print("NLTK resource 'stopwords' not found. Downloading...")
-#    nltk.download('stopwords')
-
-#try:
-#    nltk.data.find('corpora/wordnet')
-#except LookupError:
-#    print("NLTK resource 'wordnet' not found. Downloading...")
-#    nltk.download('wordnet')
-
-#try:
-#    nltk.data.find('tokenizers/punkt')
-#except LookupError:
-#    print("NLTK resource 'punkt' not found. Downloading...")
-#    nltk.download('punkt')
-
-# --- END OF NLTK SETUP ---
-
-# --- 2. Configuration ---
-# Assuming the data file is placed in the 'data' directory as per your setup
-#DATA_PATH = 'data/twitter_training.csv'
-DATA_PATH = 'data/twitter_training.csv'
-# Column names based on the snippet provided (no header in the raw CSV)
-COLUMN_NAMES = ['ID', 'Entity', 'Sentiment', 'Tweet']
-# Model parameters
-RANDOM_STATE = 42
-MAX_ITER = 1000
-
+# --- 1. NLTK Setup (Path Fix) ---
 # 💥 NEW CRITICAL FIX: Manually add the CI/CD download path to NLTK search paths
 NLTK_DATA_PATH = '/home/runner/nltk_data'
 if NLTK_DATA_PATH not in nltk.data.path:
     nltk.data.path.append(NLTK_DATA_PATH)
+
+# 💥 NEW STRUCTURAL FIX: Initialize global NLTK objects *after* the path has been set.
+# This prevents them from failing to load their resources on import.
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english'))
     
+# --- 2. Configuration ---
+DATA_PATH = 'data/twitter_training.csv'
+COLUMN_NAMES = ['ID', 'Entity', 'Sentiment', 'Tweet']
+RANDOM_STATE = 42
+MAX_ITER = 1000
+# Removed redundant NLTK_DATA_PATH line here
+
 # --- 3. Text Preprocessing Function ---
 def preprocess_text(text):
     """
-    Cleans and preprocesses the tweet text.
-    - Lowercase
-    - Remove special characters, numbers, and single characters
-    - Tokenization and Stopword Removal
-    - Lemmatization
+    Cleans and preprocesses the tweet text using the globally initialized objects.
     """
     if not isinstance(text, str):
         return ""
-
-    lemmatizer = WordNetLemmatizer()
-    stop_words = set(stopwords.words('english'))
 
     # 1. Lowercase and remove non-alphabetic characters
     text = text.lower()
@@ -77,6 +49,7 @@ def preprocess_text(text):
 
     # 2. Tokenize, remove stopwords, and lemmatize
     tokens = [
+        # Use the global lemmatizer and stop_words objects
         lemmatizer.lemmatize(word)
         for word in nltk.word_tokenize(text)
         if word not in stop_words and len(word) > 1
@@ -86,9 +59,9 @@ def preprocess_text(text):
 
 # --- 4. Main Training Function ---
 def train_and_log_model(data_path=DATA_PATH):
-    """
-    Loads data, preprocesses, trains a model, and logs everything to MLflow.
-    """
+    # ... (function contents remain the same) ...
+
+# ----------------- (Rest of the code is unchanged) -----------------
     # Set up MLflow
     mlflow.set_experiment("Ebay_Sentiment_Analysis_Project")
 
@@ -106,17 +79,15 @@ def train_and_log_model(data_path=DATA_PATH):
         print(f"Initial data shape: {df.shape}")
 
         # --- Data Cleaning ---
-        # 1. Drop rows with missing values (especially in the 'Tweet' column)
         df.dropna(subset=['Tweet', 'Sentiment'], inplace=True)
-        # 2. Drop duplicates
         df.drop_duplicates(inplace=True)
-        # 3. Handle a potential "Neutral" sentiment typo (e.g., "Neutreal")
         df['Sentiment'] = df['Sentiment'].replace({'Neutral': 'Neutral'})
 
         print(f"Cleaned data shape: {df.shape}")
 
         # --- Data Preprocessing ---
         print("Preprocessing text data...")
+        # This line now uses the globals defined after the path fix
         df['Cleaned_Tweet'] = df['Tweet'].apply(preprocess_text)
 
         # --- Feature/Target Split ---
@@ -137,7 +108,6 @@ def train_and_log_model(data_path=DATA_PATH):
         mlflow.log_param("max_iter", MAX_ITER)
 
         # --- Model Pipeline ---
-        # Use a Pipeline to combine the vectorizer and the classifier
         text_clf = Pipeline([
             ('tfidf', TfidfVectorizer(ngram_range=(1, 2), max_features=10000)),
             ('clf', LogisticRegression(random_state=RANDOM_STATE, max_iter=MAX_ITER, n_jobs=-1))
@@ -163,7 +133,6 @@ def train_and_log_model(data_path=DATA_PATH):
         mlflow.log_metric("test_f1_macro", f1_macro)
 
         # --- Model Saving/Logging ---
-        # Log the complete pipeline to MLflow
         mlflow.sklearn.log_model(
             sk_model=text_clf,
             artifact_path="model",
