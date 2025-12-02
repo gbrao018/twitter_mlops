@@ -32,19 +32,17 @@ jobs:
 
           # This entire section is one string executed by the shell.
           python -c "
-import nltk
-import ssl
-try:
-    _create_unverified_https_context = ssl._create_unverified_context
-except AttributeError:
-    pass
-else:
-    ssl._create_default_https_context = _create_unverified_https_context
+            import nltk
+            import ssl
+            try:
+                _create_unverified_https_context = ssl._create_unverified_context
+            except AttributeError:
+                pass
+            else:
+              ssl._create_default_https_context = _create_unverified_https_context
     
-# Force the downloader to look in the target path
-nltk.download(['stopwords', 'wordnet', 'punkt'], download_dir='$NLTK_DATA_PATH')
-"
-          
+            # Force the downloader to look in the target path
+            nltk.download(['stopwords', 'wordnet', 'punkt'], download_dir='$NLTK_DATA_PATH')"         
       # 💥 DATA FIX: Prepare data directory 
       - name: Prepare Data Directory
         run: |
