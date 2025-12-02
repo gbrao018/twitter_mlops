@@ -6,7 +6,9 @@ WORKDIR /app
 
 # Copy the requirements file and install dependencies first (for efficient Docker caching)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+#RUN pip install --no-cache-dir -r requirements.txt
+# Check this line: It MUST combine pip install AND cache cleanup (rm -rf)
+RUN pip install --no-cache-dir -r requirements.txt && rm -rf /root/.cache/pip
 
 # Install NLTK resources right into the Docker image
 # This prevents the initial download step from failing during runtime
@@ -15,6 +17,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 💥 CRITICAL FIX: Install ALL required NLTK data directly during the Docker build.
 RUN python -c "import nltk; nltk.download('stopwords', download_dir='/usr/local/share/nltk_data'); nltk.download('wordnet', download_dir='/usr/local/share/nltk_data'); nltk.download('punkt', download_dir='/usr/local/share/nltk_data')"
 ENV NLTK_DATA=/usr/local/share/nltk_data
+
+
+# --- ADDED STEP: COPY THE MODEL ARTIFACT ---
+# ASSUMPTION: The model files (including MLmodel) are in a subfolder named 'model_deployment_package' 
+# relative to where you run docker build.
+COPY model_deployment_package /app/model
 
 # Copy the rest of the application code
 # The setup.py will handle installing train_model.py and predict.py as scripts
@@ -31,4 +39,10 @@ RUN pip install -e .
 # CMD ["predict_sentiment"]
 
 # Define the entry point for running MLflow locally for testing, if needed
+#ENTRYPOINT ["mlflow"]
+
+# This is what you have:
 ENTRYPOINT ["mlflow"]
+
+# You MUST add this immediately after it:
+CMD ["models", "serve", "--model-uri", "file:///app/model", "--host", "0.0.0.0", "--port", "8080"]

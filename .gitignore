@@ -29,6 +29,9 @@ mlruns/
 *.h5
 *.onnx
 
+# model_deployment_package
+model_deployment_package/
+model.pkl
 # 3. NLTK Data (Downloaded resources)
 nltk_data/
 
@@ -39,3 +42,8 @@ nltk_data/
 dist/
 build/
 *.egg-info/
+
+# --- Packaging and Distribution ---
+.terraform/
+.terraform.lock.hcl
+*terraform*
