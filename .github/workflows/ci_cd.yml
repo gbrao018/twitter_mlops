@@ -1,6 +1,5 @@
 # .github/workflows/ci_cd.yml
-import nltk
-import ssl
+
 name: CI/CT/CD Pipeline for Sentiment Analysis
 
 on:
@@ -31,21 +30,22 @@ jobs:
           NLTK_DATA_PATH="/home/runner/nltk_data"
           echo "NLTK_DATA=$NLTK_DATA_PATH" >> $GITHUB_ENV
 
-          # Use a direct Python script with SSL context fix for reliable download
+          # This entire section is one string executed by the shell.
           python -c "
-
+import nltk
+import ssl
 try:
     _create_unverified_https_context = ssl._create_unverified_context
 except AttributeError:
     pass
 else:
     ssl._create_default_https_context = _create_unverified_https_context
-
+    
 # Force the downloader to look in the target path
 nltk.download(['stopwords', 'wordnet', 'punkt'], download_dir='$NLTK_DATA_PATH')
 "
           
-      # 💥 DATA FIX: Prepare data directory (removed redundant 'cp' command)
+      # 💥 DATA FIX: Prepare data directory 
       - name: Prepare Data Directory
         run: |
           # Ensures the data folder exists. The file is checked out by Git into this folder.
@@ -70,12 +70,11 @@ nltk.download(['stopwords', 'wordnet', 'punkt'], download_dir='$NLTK_DATA_PATH')
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }} # Use the Access Token here
+          password: ${{ secrets.DOCKER_PASSWORD }} 
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          # The tags line is correct based on your previous input
           tags: ganjidocker/sentiment-analysis-service:latest
