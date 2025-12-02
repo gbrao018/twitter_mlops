@@ -1,3 +1,8 @@
+#CI Phase: Training in Github actions virtual machine
+#So, while the GitHub Actions runner is the virtual machine where the code executes,
+#  the setup.py file is the instruction manual that defines the command and dictates 
+# how that code is executed during the automation phase.
+
 from setuptools import setup, find_packages
 
 setup(

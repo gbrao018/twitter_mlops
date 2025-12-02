@@ -19,26 +19,25 @@ load_dotenv()
 
 # --- 1. NLTK Setup (CORRECTED) ---
 # We catch LookupError, which is what nltk.data.find() raises when resources are missing.
+#import nltk
 
-import nltk
+#try:
+#    nltk.data.find('corpora/stopwords')
+#except LookupError:
+#    print("NLTK resource 'stopwords' not found. Downloading...")
+#    nltk.download('stopwords')
 
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    print("NLTK resource 'stopwords' not found. Downloading...")
-    nltk.download('stopwords')
+#try:
+#    nltk.data.find('corpora/wordnet')
+#except LookupError:
+#    print("NLTK resource 'wordnet' not found. Downloading...")
+#    nltk.download('wordnet')
 
-try:
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    print("NLTK resource 'wordnet' not found. Downloading...")
-    nltk.download('wordnet')
-
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    print("NLTK resource 'punkt' not found. Downloading...")
-    nltk.download('punkt')
+#try:
+#    nltk.data.find('tokenizers/punkt')
+#except LookupError:
+#    print("NLTK resource 'punkt' not found. Downloading...")
+#    nltk.download('punkt')
 
 # --- END OF NLTK SETUP ---
 
