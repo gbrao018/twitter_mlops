@@ -58,7 +58,8 @@ jobs:
           mkdir -p data
           # CRITICAL FIX: Copy the committed CSV file from the root (where Git checks it out) 
           # to the 'data/' subfolder (where train_model.py expects it).
-          cp twitter_training.csv data/twitter_training.csv 
+          #data/twitter_training.csv already present in the repo
+          #cp data/twitter_training.csv data/twitter_training.csv 
           echo "Data preparation complete. File copied to data/ directory." 
 
       # --- CD STAGE 1: Train Model ---
