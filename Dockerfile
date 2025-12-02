@@ -10,7 +10,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Install NLTK resources right into the Docker image
 # This prevents the initial download step from failing during runtime
-RUN python -c "import nltk; nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('punkt')"
+#RUN python -c "import nltk; nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('punkt')"
+
+# 💥 CRITICAL FIX: Install ALL required NLTK data directly during the Docker build.
+RUN python -c "import nltk; nltk.download('stopwords', download_dir='/usr/local/share/nltk_data'); nltk.download('wordnet', download_dir='/usr/local/share/nltk_data'); nltk.download('punkt', download_dir='/usr/local/share/nltk_data')"
+ENV NLTK_DATA=/usr/local/share/nltk_data
 
 # Copy the rest of the application code
 # The setup.py will handle installing train_model.py and predict.py as scripts
