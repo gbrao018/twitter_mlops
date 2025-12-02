@@ -1,4 +1,7 @@
-name: CI/CD Pipeline for Sentiment Analysis
+# .github/workflows/ci_cd.yml
+import nltk
+import ssl
+name: CI/CT/CD Pipeline for Sentiment Analysis
 
 on:
   push:
@@ -30,8 +33,7 @@ jobs:
 
           # Use a direct Python script with SSL context fix for reliable download
           python -c "
-import nltk
-import ssl
+
 try:
     _create_unverified_https_context = ssl._create_unverified_context
 except AttributeError:
