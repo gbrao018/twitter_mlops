@@ -23,8 +23,10 @@ else:
 
 print(f"Downloading required NLTK data to: {NLTK_DATA_PATH}")
 
+# === FIX: Added 'punkt_tab' as requested by the error log ===
+required_resources = ['stopwords', 'wordnet', 'punkt', 'punkt_tab']
+
 # Download the necessary resources, forcing the downloader to use the custom path
-# Note: 'punkt' is often needed for tokenization, 'wordnet' for stemming/lemmatization.
-nltk.download(['stopwords', 'wordnet', 'punkt'], download_dir=NLTK_DATA_PATH)
+nltk.download(required_resources, download_dir=NLTK_DATA_PATH)
 
 print("NLTK data download complete.")
