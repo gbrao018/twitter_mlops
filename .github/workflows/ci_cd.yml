@@ -1,15 +1,3 @@
-#CI_CD Pipeline: The ci_cd.yml file is the master blueprint for the entire 
-#MLOps workflow. It orchestrates all stages in a single continuous process.
-#Phase Name,                    YAML Stage,           Purpose,                                                                                                       Primary Output
-#1. Continuous Integration (CI)->Setup and Installation->Prepares the isolated runner environment by installing dependencies and creating the train_sentiment script via setup.py.,->Functional Python Environment
-#2. Continuous Training (CT)->Run Model Training->"Executes the train_sentiment script to train the model, evaluate it, and log it persistently to MLflow.",  ->MLflow Model Artifact (The trained model)
-#3. Continuous Delivery (CD)->Build and Push Docker Image,->"Packages the inference code (predict.py), its dependencies, and the serving configuration into an isolated, versioned artifact.",-> Docker Image (The production serving container)
-#The ci_cd.yml file is responsible for the training (CI/CT) and for the creation of the deployment asset (CD).
-#Think of it this way: That is an extremely crucial point to clarify! You've noticed a potential contradiction in the terminology.You are absolutely correct that the ci_cd.yml file is primarily focused on the Continuous Integration (CI) and Continuous Training/Delivery (CD) stages, starting with setup and installation (pip install -e .) and running the training (train_sentiment).The confusion arose because the ultimate goal of the entire pipeline, as defined in that file, is to produce a deployable asset used for Inference/Serving.Here is the corrected explanation of the two distinct roles within that single YAML file:The Two Roles of ci_cd.ymlThe ci_cd.yml file is the master blueprint for the entire MLOps workflow. It orchestrates all stages in a single continuous process.Phase NameYAML StagePurposePrimary Output1. Continuous Integration (CI)Setup and InstallationPrepares the isolated runner environment by installing dependencies and creating the train_sentiment script via setup.py.Functional Python Environment2. Continuous Training (CT)Run Model TrainingExecutes the train_sentiment script to train the model, evaluate it, and log it persistently to MLflow.MLflow Model Artifact (The trained model)3. Continuous Delivery (CD)Build and Push Docker ImagePackages the inference code (predict.py), its dependencies, and the serving configuration into an isolated, versioned artifact.Docker Image (The production serving container)Correcting the MisconceptionThe ci_cd.yml file is responsible for the training (CI/CT) and for the creation of the deployment asset (CD).The reason we focus so much on the Docker image is that the image itself is the package that contains the inference code. Once that image is deployed, it performs inference for the end-user.Think of it this way:CI/CT Steps: The factory floor where the product (the trained model) is made.CD Steps: The packaging line where the delivery box (the Docker image) is created to securely ship the product to the store (deployment environment).ShutterstockExploreThe ci_cd.yml defines both the factory floor and the packaging line in one seamless script.
-  #CI/CT Steps: The factory floor where the product (the trained model) is made.
-  #CD Steps: The packaging line where the delivery box (the Docker image) is created 
-    #to securely ship the product to the store (deployment environment).
-
 name: CI/CD Pipeline for Sentiment Analysis
 
 on:
@@ -34,23 +22,33 @@ jobs:
       - name: Install Project and Dependencies
         run: pip install -e .
 
-      # 💥 NLTK FIX: Download resources to a fixed path and set the ENV variable.
-      # This addresses the persistent LookupError.
+      # 💥 NLTK FIX: Download resources using a robust method and set the ENV variable.
       - name: Download NLTK Resources
         run: |
-          # Set the environment variable for subsequent steps
-          echo "NLTK_DATA=/home/runner/nltk_data" >> $GITHUB_ENV
-          
-          # Download ALL required packages into the fixed location
-          python -c "import nltk; nltk.download(['stopwords', 'wordnet', 'punkt'], download_dir='/home/runner/nltk_data')"
+          NLTK_DATA_PATH="/home/runner/nltk_data"
+          echo "NLTK_DATA=$NLTK_DATA_PATH" >> $GITHUB_ENV
+
+          # Use a direct Python script with SSL context fix for reliable download
+          python -c "
+import nltk
+import ssl
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
+# Force the downloader to look in the target path
+nltk.download(['stopwords', 'wordnet', 'punkt'], download_dir='$NLTK_DATA_PATH')
+"
           
       # 💥 DATA FIX: Prepare data directory (removed redundant 'cp' command)
-      # This assumes the 'twitter_training.csv' is committed inside the 'data/' folder.
       - name: Prepare Data Directory
         run: |
-          # Ensures the data folder exists. We rely on Git checkout for the file.
+          # Ensures the data folder exists. The file is checked out by Git into this folder.
           mkdir -p data 
-          echo "Data directory prepared. File checked out by Git."
+          echo "Data directory prepared."
 
       # --- CT STAGE: Train Model ---
       # 💥 FINAL NLTK FIX: Explicitly pass the NLTK_DATA environment variable to the training script.
@@ -77,5 +75,5 @@ jobs:
         with:
           context: .
           push: true
-          # !! REPLACE 'yourdockerhubusername' with your actual username !!
+          # The tags line is correct based on your previous input
           tags: ganjidocker/sentiment-analysis-service:latest
